@@ -49,7 +49,8 @@ jobs:
         else
           if grep -q 'Error: ffmpeg exited' toolTest.log \
           || grep -q 'Because this error occurred during a `before each` hook' toolTest.log \
-          || grep -q 'EISDIR: illegal operation on a directory, read' toolTest.log;
+          || grep -q 'EISDIR: illegal operation on a directory, read' toolTest.log \
+          || grep -q '`cy.visit()` failed trying to load' toolTest.log;
           then
             cat toolTest.log; $toolTestsCommand
           else
@@ -74,7 +75,8 @@ jobs:
         else
           if grep -q 'Error: ffmpeg exited' requestsTest.log \
           || grep -q 'Because this error occurred during a `before each` hook' requestsTest.log \
-          || grep -q 'EISDIR: illegal operation on a directory, read' requestsTest.log;
+          || grep -q 'EISDIR: illegal operation on a directory, read' requestsTest.log \
+          || grep -q '`cy.visit()` failed trying to load' toolTest.log;
           then
             cat requestsTest.log; $requestsTestsCommand
           else
