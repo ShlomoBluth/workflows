@@ -56,12 +56,12 @@ jobs:
           else
             cat toolTest.log; exit 1
           fi
-        fi 
+        fi;
       if: ${{env.TOOL_TESTS == 'true'}}
 
     - name: Copy test execution videos 
       run: |
-        cp cypress/videos/* public/videos
+        cp cypress/videos/* public/videos 
       if: ${{ always() && (env.TOOL_TESTS == 'true')}}
 
     - name: Run chrome requests tests
@@ -88,15 +88,15 @@ jobs:
 
     - name: Copy test execution videos 
       run: |
-        cp cypress/videos/* public/videos
+        cp cypress/videos/* public/videos 
       if: ${{ always() && (env.REQUESTS_TESTS == 'true') }}
 
     - name: Merge test results into one
-      run: npx mochawesome-merge cypress/results/json/*.json > index.json
+      run: npx mochawesome-merge cypress/results/json/*.json > index.json 
       if: ${{ always() && ((env.REQUESTS_TESTS == 'true') || (env.TOOL_TESTS == 'true')) }}
 
     - name: Generate HTML report
-      run: npx marge index.json --reportDir public --assetsDir public/assets --reportPageTitle index.html
+      run: npx marge index.json --reportDir public --assetsDir public/assets --reportPageTitle index.html 
       if: ${{ always() && ((env.REQUESTS_TESTS == 'true') || (env.TOOL_TESTS == 'true')) }}
 
     - name: Deploy report page
@@ -104,5 +104,7 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./public
+        allow_empty_commit: true
+        force_orphan: true
       if: ${{ always() && ((env.REQUESTS_TESTS == 'true') || (env.TOOL_TESTS == 'true')) }}
                 
