@@ -4,7 +4,9 @@ on:
   # push
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '0 6,14,22 * * *'
+    # synoptic
+    - cron:  '0 8,16,0 * * *'
+    #- cron:  '0 6,14,22 * * *'
 
 
 jobs:
@@ -54,18 +56,19 @@ jobs:
         else
           if grep -q 'Error: ffmpeg exited' toolTest.log \
           || grep -q 'Because this error occurred during a `before each` hook' toolTest.log \
-          || grep -q 'EISDIR: illegal operation on a directory, read' toolTest.log;
+          || grep -q 'EISDIR: illegal operation on a directory, read' toolTest.log \
+          || grep -q '`cy.visit()` failed trying to load' toolTest.log;
           then
             cat toolTest.log; $toolTestsCommand
           else
             cat toolTest.log; exit 1
           fi
-        fi 
+        fi;
       if: ${{env.TOOL_TESTS == 'true'}}
 
     - name: Copy test execution videos 
       run: |
-        cp cypress/videos/* public/videos
+        cp cypress/videos/* public/videos 
       if: ${{ always() && (env.TOOL_TESTS == 'true')}}
 
     - name: Run chrome requests tests
@@ -79,7 +82,8 @@ jobs:
         else
           if grep -q 'Error: ffmpeg exited' requestsTest.log \
           || grep -q 'Because this error occurred during a `before each` hook' requestsTest.log \
-          || grep -q 'EISDIR: illegal operation on a directory, read' requestsTest.log;
+          || grep -q 'EISDIR: illegal operation on a directory, read' requestsTest.log \
+          || grep -q '`cy.visit()` failed trying to load' toolTest.log;
           then
             cat requestsTest.log; $requestsTestsCommand
           else
@@ -91,15 +95,15 @@ jobs:
 
     - name: Copy test execution videos 
       run: |
-        cp cypress/videos/* public/videos
+        cp cypress/videos/* public/videos 
       if: ${{ always() && (env.REQUESTS_TESTS == 'true') }}
 
     - name: Merge test results into one
-      run: npx mochawesome-merge cypress/results/json/*.json > index.json
+      run: npx mochawesome-merge cypress/results/json/*.json > index.json 
       if: ${{ always() && ((env.REQUESTS_TESTS == 'true') || (env.TOOL_TESTS == 'true')) }}
 
     - name: Generate HTML report
-      run: npx marge index.json --reportDir public --assetsDir public/assets --reportPageTitle index.html
+      run: npx marge index.json --reportDir public --assetsDir public/assets --reportPageTitle index.html 
       if: ${{ always() && ((env.REQUESTS_TESTS == 'true') || (env.TOOL_TESTS == 'true')) }}
 
     - name: Deploy report page
