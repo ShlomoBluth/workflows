@@ -1,10 +1,10 @@
 name: Edge tests
 
 on: 
-  push
-  # schedule:
-  #   # * is a special character in YAML so you have to quote this string
-  #   - cron:  '0 4,12,20 * * *'
+  # push
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 4,12,20 * * *'
 
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
 
     - name: Install a project with a clean slate
       run: |
-        npm install --save-dev cypress@12.1.0
+        npm install --save-dev cypress@12.5.0
         $(npm bin)/cypress cache path
         $(npm bin)/cypress cache list
         $(npm bin)/cypress verify
@@ -102,5 +102,6 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./public
+        force_orphan: true  # Add this line to force push
       if: ${{ always() && ((env.REQUESTS_TESTS == 'true') || (env.TOOL_TESTS == 'true')) }}
                 
