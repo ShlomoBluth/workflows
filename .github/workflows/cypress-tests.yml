@@ -63,7 +63,7 @@ jobs:
           # Runs one spec; retries once if it failed for a known infrastructure reason.
           set -o pipefail
           spec="$1"
-          log="$RUNNER_TEMP/$(basename "$spec").log"
+          log="$RUNNER_TEMP/$(basename "${spec%%{*}").log"
           transient='Error: ffmpeg exited|Because this error occurred during a `before each` hook|EISDIR: illegal operation on a directory, read'
           for attempt in 1 2; do
             before=$(ls cypress/results/json 2>/dev/null)
@@ -80,11 +80,11 @@ jobs:
 
       - name: Run ${{ inputs.browser }} tool tests
         if: env.TOOL_TESTS == 'true'
-        run: $RUNNER_TEMP/run-spec.sh ./cypress/e2e/toolTests.js
+        run: $RUNNER_TEMP/run-spec.sh 'cypress/e2e/toolTests{,.cy}.js'
 
       - name: Run ${{ inputs.browser }} requests tests
         if: always() && env.REQUESTS_TESTS == 'true'
-        run: $RUNNER_TEMP/run-spec.sh ./cypress/e2e/requestsTests.js
+        run: $RUNNER_TEMP/run-spec.sh 'cypress/e2e/requestsTests{,.cy}.js'
 
       - name: Build HTML report
         if: always() && (env.TOOL_TESTS == 'true' || env.REQUESTS_TESTS == 'true')
