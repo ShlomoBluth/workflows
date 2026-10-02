@@ -3,7 +3,16 @@ name: Firefox tests
 on:
   schedule:
     - cron: '0 2,10,18 * * *'
-  workflow_dispatch: # allow manual runs from the Actions tab
+  workflow_dispatch: # manual run from the Actions tab; choose which specs to run
+    inputs:
+      tool-tests:
+        description: Run toolTests
+        type: boolean
+        default: true
+      requests-tests:
+        description: Run requestsTests
+        type: boolean
+        default: false
 
 concurrency:
   group: firefox-tests
@@ -17,4 +26,7 @@ jobs:
     uses: ShlomoBluth/workflows/.github/workflows/cypress-tests.yml@v1
     with:
       browser: firefox
+      # scheduled/push runs use the fixed value; manual runs use the checkbox
+      tool-tests: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.tool-tests) || 'true' }}
+      requests-tests: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.requests-tests) || 'false' }}
     secrets: inherit
