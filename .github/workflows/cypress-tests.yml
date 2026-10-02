@@ -105,9 +105,11 @@ jobs:
       - name: Build HTML report
         if: always() && (env.TOOL_TESTS == 'true' || env.REQUESTS_TESTS == 'true')
         run: |
+          tool="${GITHUB_REPOSITORY#*/}"   # owner/dicta-nakdan -> nakdan
+          tool="${tool#dicta-}"
           npx mochawesome-merge "cypress/results/json/*.json" > index.json
           npx marge index.json --reportDir public --assetsDir public/assets \
-            --reportPageTitle "abbreviation - ${{ inputs.browser }}"
+            --reportPageTitle "$tool - ${{ inputs.browser }}"
 
       # only failed specs keep a video (dicta-shared/videoCleanup.js); GitHub deletes them after 7 days.
       # Videos are not deployed to gh-pages, so they don't pile up in its history.
