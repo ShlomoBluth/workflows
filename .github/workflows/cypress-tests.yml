@@ -1,0 +1,104 @@
+name: Cypress tests (reusable)
+
+# Shared Cypress job for all dicta-* test repos.
+# Called from each repo's chrome-tests.yml / edge-tests.yml / firefox-tests.yml (templates in this repo's root).
+# Which specs run is controlled by TOOL_TESTS / REQUESTS_TESTS in the calling repo's cypress.config.js.
+
+on:
+  workflow_call:
+    inputs:
+      browser:
+        description: chrome | edge | firefox
+        required: true
+        type: string
+      image:
+        description: cypress/browsers image. Firefox >= 135 needs Cypress >= 14.1 in the calling repo.
+        required: false
+        type: string
+        default: cypress/browsers:node-24.21.0-chrome-154.0.8037.92-1-ff-157.0-edge-154.0.4258.48-1
+
+permissions:
+  contents: write # needed to push the report to gh-pages
+
+defaults:
+  run:
+    shell: bash # bash with -eo pipefail, so `cypress | tee` keeps the cypress exit code
+
+jobs:
+  cypress-e2e:
+    name: Run on ${{ inputs.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    container:
+      image: ${{ inputs.image }}
+      options: --user 1001 # Firefox refuses to run as root
+
+    env:
+      BROWSER: ${{ inputs.browser }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # npm ci from the lockfile (the Cypress version in package.json) with npm + Cypress binary caching
+      - name: Install dependencies
+        uses: cypress-io/github-action@v6
+        with:
+          runTests: false
+
+      - name: Read test flags from cypress.config.js
+        run: |
+          echo "TOOL_TESTS=$(node -p "require('./cypress.config.js').env.TOOL_TESTS")" >> "$GITHUB_ENV"
+          echo "REQUESTS_TESTS=$(node -p "require('./cypress.config.js').env.REQUESTS_TESTS")" >> "$GITHUB_ENV"
+          # stale results committed to the repo must not end up in this run's report
+          rm -rf cypress/results cypress/videos
+          mkdir -p public/videos
+
+      - name: Write spec runner
+        run: |
+          cat > "$RUNNER_TEMP/run-spec.sh" <<'EOF'
+          #!/usr/bin/env bash
+          # Runs one spec; retries once if it failed for a known infrastructure reason.
+          set -o pipefail
+          spec="$1"
+          log="$RUNNER_TEMP/$(basename "$spec").log"
+          transient='Error: ffmpeg exited|Because this error occurred during a `before each` hook|EISDIR: illegal operation on a directory, read'
+          for attempt in 1 2; do
+            before=$(ls cypress/results/json 2>/dev/null)
+            npx cypress run --browser "$BROWSER" --spec "$spec" --config trashAssetsBeforeRuns=false 2>&1 | tee "$log" && exit 0
+            if [ "$attempt" = 2 ] || ! grep -qE "$transient" "$log"; then exit 1; fi
+            echo "::warning::$spec hit a known transient failure, retrying once"
+            # drop the failed attempt's report so it isn't merged next to the retry
+            for f in $(ls cypress/results/json 2>/dev/null); do
+              grep -qxF "$f" <<<"$before" || rm -f "cypress/results/json/$f"
+            done
+          done
+          EOF
+          chmod +x "$RUNNER_TEMP/run-spec.sh"
+
+      - name: Run ${{ inputs.browser }} tool tests
+        if: env.TOOL_TESTS == 'true'
+        run: $RUNNER_TEMP/run-spec.sh ./cypress/e2e/toolTests.js
+
+      - name: Run ${{ inputs.browser }} requests tests
+        if: always() && env.REQUESTS_TESTS == 'true'
+        run: $RUNNER_TEMP/run-spec.sh ./cypress/e2e/requestsTests.js
+
+      - name: Build HTML report
+        if: always() && (env.TOOL_TESTS == 'true' || env.REQUESTS_TESTS == 'true')
+        run: |
+          cp cypress/videos/* public/videos/ 2>/dev/null || true
+          npx mochawesome-merge "cypress/results/json/*.json" > index.json
+          npx marge index.json --reportDir public --assetsDir public/assets \
+            --reportPageTitle "abbreviation - ${{ inputs.browser }}"
+
+      - name: Deploy report page
+        if: always() && (env.TOOL_TESTS == 'true' || env.REQUESTS_TESTS == 'true')
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          # one folder per browser so the three workflows don't overwrite each other's report
+          destination_dir: ${{ inputs.browser }}
