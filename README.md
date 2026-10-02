@@ -9,4 +9,4 @@ Shared GitHub Actions for the dicta-* Cypress test repos.
 
   Callers that don't pass `tool-tests` / `requests-tests` fall back to `TOOL_TESTS` / `REQUESTS_TESTS` in the repo's `cypress.config.js`.
 
-Callers pin `@v1`. After changing the reusable workflow, move the tag (`git tag -f v1 && git push -f origin v1`) or create `v2` and update callers.
+Callers pin `@v2`. After changing the reusable workflow, create a new tag (`v3`, ...) and update the callers; moving an existing tag needs a force push.

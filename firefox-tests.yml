@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   cypress:
-    uses: ShlomoBluth/workflows/.github/workflows/cypress-tests.yml@v1
+    uses: ShlomoBluth/workflows/.github/workflows/cypress-tests.yml@v2
     with:
       browser: firefox
       # scheduled/push runs use the fixed value; manual runs use the checkbox
