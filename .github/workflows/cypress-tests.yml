@@ -47,6 +47,8 @@ jobs:
 
     env:
       BROWSER: ${{ inputs.browser }}
+      # failed tests in the report link here; their videos are a 7-day artifact of this run
+      CYPRESS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +71,6 @@ jobs:
           echo "REQUESTS_TESTS=${REQUESTS_INPUT:-$(fromConfig REQUESTS_TESTS)}" >> "$GITHUB_ENV"
           # stale results committed to the repo must not end up in this run's report
           rm -rf cypress/results cypress/videos
-          mkdir -p public/videos
 
       - name: Write spec runner
         run: |
@@ -104,10 +105,19 @@ jobs:
       - name: Build HTML report
         if: always() && (env.TOOL_TESTS == 'true' || env.REQUESTS_TESTS == 'true')
         run: |
-          cp cypress/videos/* public/videos/ 2>/dev/null || true
           npx mochawesome-merge "cypress/results/json/*.json" > index.json
           npx marge index.json --reportDir public --assetsDir public/assets \
             --reportPageTitle "abbreviation - ${{ inputs.browser }}"
+
+      # only failed specs keep a video (dicta-shared/videoCleanup.js); GitHub deletes them after 7 days.
+      # Videos are not deployed to gh-pages, so they don't pile up in its history.
+      - name: Upload videos of failed specs
+        if: always() && hashFiles('cypress/videos/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-videos-${{ inputs.browser }}
+          path: cypress/videos
+          retention-days: 7
 
       - name: Deploy report page
         if: always() && (env.TOOL_TESTS == 'true' || env.REQUESTS_TESTS == 'true')
